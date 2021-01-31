@@ -109,7 +109,7 @@ router.post('/', (req, res, next) => {
                         }
 
                         const product = getPaymentMethod(result);
-                        res.status(200).json(product);
+                        res.status(201).json(product);
                     }
                 );
             }
@@ -155,7 +155,7 @@ router.put('/:id', (req, res, next) => {
                         }
 
                         const product = getPaymentMethod(result);
-                        res.status(200).json(product);
+                        res.status(201).json(product);
                     }
                 );
             }
