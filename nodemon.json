@@ -5,6 +5,7 @@
     "MYSQL_PASSWORD": "Cervejada",
     "MYSQL_DATABASE": "fast_food",
     "MYSQL_HOST": "localhost",
-    "MYSQL_PORT": 3306
+    "MYSQL_PORT": 3306,
+    "JWT_KEY": "x_Bacon"
   }
 }

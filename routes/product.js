@@ -45,6 +45,29 @@ router.get('/', (req, res, next) => {
     });
 });
 
+router.get('/sales', (req, res, next) => {
+
+    mysql.getConnection((err, conn) => {
+        if (err) {
+            return res.status(500).send(err)
+        }
+        conn.query(
+            'SELECT * FROM products WHERE status = 1 ORDER BY product_name',
+            (error, result, field) => {
+
+                conn.release();
+                if (error) {
+                    return res.status(500).send(error);
+                }
+
+                const products = transformProducts(result);
+
+                res.status(200).send(products);
+            }
+        );
+    });
+});
+
 router.get('/:id', (req, res, next) => {
 
     const id = req.params.id;

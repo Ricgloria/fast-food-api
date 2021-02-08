@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const mysql = require('../mysql').pool;
+const jwt = require('jsonwebtoken');
 
 
 function transformUser(users) {
@@ -93,12 +94,12 @@ router.post('/', (req, res, next) => {
         }
 
         bcrypt.hash(req.body.password, 10, (errBcrypt, hash) => {
-           if (errBcrypt) {
-               return res.status(500).send(errBcrypt);
-           }
+            if (errBcrypt) {
+                return res.status(500).send(errBcrypt);
+            }
             connection.query(
                 `INSERT INTO users (cpf, name, permission, password, phone, address, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     req.body.cpf,
                     req.body.name,
@@ -120,6 +121,44 @@ router.post('/', (req, res, next) => {
     });
 });
 
+router.post('/login', (req, res, next) => {
+    mysql.getConnection((err, connection) => {
+        if (err) {
+            return res.status(500).send(err)
+        }
+        const query = 'SELECT * FROM users WHERE cpf = ?'
+        connection.query(query, [req.body.cpf], (error, result, fields) => {
+            connection.release();
+            if (error) {
+                return res.status(500).send(err);
+            }
+            if (!result.length || result[0].status === 0) {
+                return res.status(401).send({message: 'Falha na autenticação'});
+            }
+
+            bcrypt.compare(req.body.password, result[0].password, (err2, result1) => {
+                if (result1) {
+                    const token = jwt.sign(
+                        {
+                            id_user: result[0].id_user,
+                            permission: result[0].permission
+                        }, process.env.JWT_KEY,
+                        {
+                            expiresIn: '2 days'
+                        });
+
+                    return res.status(200).send({
+                        user: getUser(result),
+                        token
+                    })
+                } else {
+                    return res.status(401).send({message: 'Falha na autenticação'});
+                }
+            });
+        });
+    });
+});
+
 router.put('/:id', (req, res, next) => {
 
     mysql.getConnection((err, connection) => {
@@ -128,7 +167,14 @@ router.put('/:id', (req, res, next) => {
         }
 
         connection.query(
-            `UPDATE users SET cpf = ?, name = ?, permission = ?, phone = ?, address = ?, status = ? WHERE id_user = ?`,
+            `UPDATE users
+             SET cpf        = ?,
+                 name       = ?,
+                 permission = ?,
+                 phone      = ?,
+                 address    = ?,
+                 status     = ?
+             WHERE id_user = ?`,
             [
                 req.body.cpf,
                 req.body.name,

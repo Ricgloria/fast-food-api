@@ -4,8 +4,8 @@ const morgan = require("morgan");
 
 const product = require('./routes/product');
 const user = require('./routes/user');
-const auth = require('./routes/auth');
 const paymentMethod = require('./routes/payment-method');
+const sales = require('./routes/sales');
 
 app.use(morgan('dev'))
 app.use(express.urlencoded({extended: false}));
@@ -23,8 +23,8 @@ app.use((req, res, next) => {
 
 app.use('/product', product);
 app.use('/user', user);
-app.use('/auth', auth);
 app.use('/payment-method', paymentMethod);
+app.use('/sales', sales);
 
 app.use((req, res, next) => {
     const error = new Error('Route not found');
