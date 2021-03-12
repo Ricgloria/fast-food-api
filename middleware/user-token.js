@@ -8,7 +8,6 @@ module.exports = (req, res, next) => {
         req.body.permission = decode.permission;
         next();
     } catch (e) {
-        console.log(e)
         return res.status(401).send({message: 'Falha na autenticação'});
     }
 }

@@ -1,4 +1,4 @@
-const mysql = require('../mysql').pool;
+const mysql = require('../mysql');
 
 function transformPaymentMethod(method) {
     return method.map(pro => {
@@ -19,194 +19,98 @@ function getPaymentMethod(result) {
 }
 
 
-exports.getPaymentMethod = (req, res, next) => {
-
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            'SELECT * FROM payment_methods',
-            (error, result, field) => {
-
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                const products = transformPaymentMethod(result);
-
-                res.status(200).send(products);
-            }
-        );
-    });
+exports.getPaymentMethod = async (req, res) => {
+    try {
+        const query = 'SELECT * FROM payment_methods';
+        const result = await mysql.executeQuery(query);
+        const products = transformPaymentMethod(result);
+        res.status(200).send(products);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.getPaymentMethodForSales = (req, res, next) => {
-
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            'SELECT * FROM payment_methods WHERE status = 1 ORDER BY description',
-            (error, result, field) => {
-
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                const products = transformPaymentMethod(result);
-
-                res.status(200).send(products);
-            }
-        );
-    });
+exports.getPaymentMethodForSales = async (req, res) => {
+    try {
+        const query = 'SELECT * FROM payment_methods WHERE status = 1 ORDER BY description';
+        const result = await mysql.executeQuery(query);
+        const products = transformPaymentMethod(result);
+        res.status(200).send(products);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.getPaymentMethodById = (req, res, next) => {
+exports.getPaymentMethodById = async (req, res) => {
 
-    const id = req.params.id;
+    try {
+        const id = req.params.id;
+        const query = `SELECT *
+                       FROM payment_methods
+                       WHERE id_payment_method = ?`;
+        const result = await mysql.executeQuery(query, [id]);
 
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
+        if (!result.length) {
+            return res.status(404).send({message: 'Não encontrado'})
+        } else {
+            const product = getPaymentMethod(result);
+            res.status(200).json(product);
         }
-        conn.query(
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+
+}
+
+exports.postPaymentMethod = async (req, res) => {
+
+    try {
+        const query = `INSERT INTO payment_methods (description, status)
+                       VALUES (?, ?)`;
+        const result = await mysql.executeQuery(query, [req.body.description, req.body.status]);
+
+        const query2 = `SELECT *
+                        FROM payment_methods
+                        WHERE id_payment_method = ?`
+        const result2 = await mysql.executeQuery(query2, [result.insertId]);
+        const product = getPaymentMethod(result2);
+        res.status(201).json(product);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
+exports.putPaymentMethod = async (req, res) => {
+
+    try {
+        const query = `UPDATE payment_methods
+                       SET description = ?,
+                           status      = ?
+                       WHERE id_payment_method = ?`;
+        await mysql.executeQuery(query, [req.body.description, req.body.status, req.params.id]);
+        const result = await mysql.executeQuery(
             `SELECT *
              FROM payment_methods
-             WHERE id_payment_method = ?`,
-            [id],
-            (error, result, field) => {
-                conn.release();
-
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                if (!result.length) {
-                    return res.status(404).send('Não encontrado')
-                }
-
-                const product = getPaymentMethod(result);
-                res.status(200).json(product);
-            }
-        );
-    });
-
+             WHERE id_payment_method = ?`, [req.params.id]);
+        const product = getPaymentMethod(result);
+        res.status(201).json(product);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.postPaymentMethod = (req, res, next) => {
+exports.deletePaymentMethod = async (req, res) => {
 
-    mysql.getConnection((err, connection) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-
-        connection.query(
-            `INSERT INTO payment_methods (description, status)
-             VALUES (?, ?)`,
-            [req.body.description, req.body.status],
-            (error, result, fields) => {
-
-                if (error) {
-                    connection.release();
-                    return res.status(500).send(error);
-                }
-                connection.query(
-                    `SELECT *
-                     FROM payment_methods
-                     WHERE id_payment_method = ?`,
-                    [result.insertId],
-                    (error, result, field) => {
-                        connection.release();
-
-                        if (error) {
-                            return res.status(500).send(error);
-                        }
-
-                        if (!result.length) {
-                            return res.status(404).send('Não encontrado')
-                        }
-
-                        const product = getPaymentMethod(result);
-                        res.status(201).json(product);
-                    }
-                );
-            }
-        );
-    });
-
-}
-
-exports.putPaymentMethod = (req, res, next) => {
-
-    mysql.getConnection((err, connection) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-
-        connection.query(
-            `UPDATE payment_methods
-             SET description = ?,
-                 status      = ?
-             WHERE id_payment_method = ?`,
-            [req.body.description, req.body.status, req.params.id],
-            (error, result, fields) => {
-
-                if (error) {
-                    connection.release();
-                    return res.status(500).send(error);
-                }
-
-                connection.query(
-                    `SELECT *
-                     FROM payment_methods
-                     WHERE id_payment_method = ?`,
-                    [req.params.id],
-                    (error, result, field) => {
-                        connection.release();
-
-                        if (error) {
-                            return res.status(500).send(error);
-                        }
-
-                        if (!result.length) {
-                            return res.status(404).send('Não encontrado')
-                        }
-
-                        const product = getPaymentMethod(result);
-                        res.status(201).json(product);
-                    }
-                );
-            }
-        );
-    });
-}
-
-exports.deletePaymentMethod = (req, res, next) => {
-
-    const id = req.params.id;
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            `DELETE
-             FROM payment_methods
-             WHERE id_payment_method = ?`,
-            [id],
-            (error, result, field) => {
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                res.status(202).send({
-                    message: 'Método de pagamento excluído com sucesso'
-                });
-            }
-        );
-    });
+    try {
+        const id = req.params.id;
+        const query = `DELETE
+                       FROM payment_methods
+                       WHERE id_payment_method = ?`;
+        await mysql.executeQuery(query, [id]);
+        res.status(202).send({
+            message: 'Método de pagamento excluído com sucesso'
+        });
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
