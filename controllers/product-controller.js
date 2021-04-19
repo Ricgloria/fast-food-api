@@ -1,4 +1,4 @@
-const mysql = require('../mysql').pool;
+const mysql = require('../mysql');
 
 function transformProducts(products) {
     return products.map(pro => {
@@ -20,193 +20,93 @@ function getProduct(result) {
     };
 }
 
-exports.getProducts = (req, res, next) => {
+exports.getProducts = async (req, res) => {
 
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            'SELECT * FROM products',
-            (error, result, field) => {
-
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                const products = transformProducts(result);
-
-                res.status(200).send(products);
-            }
-        );
-    });
+    try {
+        const query = 'SELECT * FROM products';
+        const result = await mysql.executeQuery(query);
+        const products = transformProducts(result);
+        res.status(200).send(products);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.getProductsForSales = (req, res, next) => {
-
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            'SELECT * FROM products WHERE status = 1 ORDER BY product_name',
-            (error, result, field) => {
-
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                const products = transformProducts(result);
-
-                res.status(200).send(products);
-            }
-        );
-    });
+exports.getProductsForSales = async (req, res) => {
+    try {
+        const query = 'SELECT * FROM products WHERE status = 1 ORDER BY product_name';
+        const result = await mysql.executeQuery(query);
+        const products = transformProducts(result);
+        res.status(200).send(products);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.getProductById = (req, res, next) => {
+exports.getProductById = async (req, res) => {
 
-    const id = req.params.id;
+    try {
+        const id = req.params.id;
+        const query = `SELECT *
+                       FROM products
+                       WHERE id_product = ?`;
+        const result = await mysql.executeQuery(query, [id]);
 
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
+        if (!result.length) {
+            return res.status(404).send('Não encontrado')
         }
-        conn.query(
-            `SELECT *
-             FROM products
-             WHERE id_product = ?`,
-            [id],
-            (error, result, field) => {
-                conn.release();
 
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                if (!result.length) {
-                    return res.status(404).send('Não encontrado')
-                }
-
-                const product = getProduct(result);
-                res.status(200).json(product);
-            }
-        );
-    });
+        const product = getProduct(result);
+        res.status(200).json(product);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.postProduct = (req, res, next) => {
+exports.postProduct = async (req, res) => {
 
-    mysql.getConnection((err, connection) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-
-        connection.query(
-            `INSERT INTO products (product_name, product_value, status)
-             VALUES (?, ?, ?)`,
-            [req.body.product_name, req.body.product_value, req.body.status],
-            (error, result, fields) => {
-
-                if (error) {
-                    connection.release();
-                    return res.status(500).send(error);
-                }
-                connection.query(
-                    `SELECT *
-                     FROM products
-                     WHERE id_product = ?`,
-                    [result.insertId],
-                    (error, result, field) => {
-                        connection.release();
-
-                        if (error) {
-                            return res.status(500).send(error);
-                        }
-
-                        if (!result.length) {
-                            return res.status(404).send('Não encontrado')
-                        }
-
-                        const product = getProduct(result);
-                        res.status(201).json(product);
-                    }
-                );
-            }
-        );
-    });
+    try {
+        let query = 'INSERT INTO products (product_name, product_value, status) VALUES (?, ?, ?)';
+        const result = await mysql.executeQuery(query, [req.body.product_name, req.body.product_value, req.body.status]);
+        query = 'SELECT * FROM products WHERE id_product = ?';
+        const res2 = await mysql.executeQuery(query, [result.insertId]);
+        const product = getProduct(res2);
+        res.status(201).json(product);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.putProduct = (req, res, next) => {
+exports.putProduct = async (req, res) => {
 
-    mysql.getConnection((err, connection) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        connection.query(
-            `UPDATE products
-             SET product_name  = ?,
-                 product_value = ?,
-                 status        = ?
-             WHERE id_product = ?`,
-            [req.body.product_name, req.body.product_value, req.body.status, req.params.id],
-            (error, result, fields) => {
-
-                if (error) {
-                    connection.release();
-                    return res.status(500).send(error);
-                }
-
-                connection.query(
-                    `SELECT *
-                     FROM products
-                     WHERE id_product = ?`,
-                    [req.params.id],
-                    (error, result, field) => {
-                        connection.release();
-
-                        if (error) {
-                            return res.status(500).send(error);
-                        }
-
-                        if (!result.length) {
-                            return res.status(404).send('Não encontrado')
-                        }
-
-                        const product = getProduct(result);
-                        res.status(201).json(product);
-                    }
-                );
-            }
-        );
-    });
+    try {
+        let query = `UPDATE products
+                     SET product_name  = ?,
+                         product_value = ?,
+                         status        = ?
+                     WHERE id_product = ?`;
+        await mysql.executeQuery(query, [req.body.product_name, req.body.product_value, req.body.status, req.params.id]);
+        query = 'SELECT * FROM products WHERE id_product = ?';
+        const result = await mysql.executeQuery(query, [req.params.id]);
+        const product = getProduct(result);
+        res.status(201).json(product);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
 
-exports.deleteProduct = (req, res, next) => {
+exports.deleteProduct = async (req, res) => {
 
-    const id = req.params.id;
-
-    mysql.getConnection((err, conn) => {
-        if (err) {
-            return res.status(500).send(err)
-        }
-        conn.query(
-            `DELETE
-             FROM products
-             WHERE id_product = ?`,
-            [id],
-            (error, result, field) => {
-                conn.release();
-                if (error) {
-                    return res.status(500).send(error);
-                }
-
-                res.status(202).send({
-                    message: 'Produto excluído com sucesso'
-                });
-            }
-        );
-    });
+    try {
+        const id = req.params.id;
+        const query = `DELETE
+                       FROM products
+                       WHERE id_product = ?`;
+        await mysql.executeQuery(query, [id]);
+        res.status(202).send({
+            message: 'Produto excluído com sucesso'
+        });
+    } catch (e) {
+        return res.status(500).send(e);
+    }
 }
