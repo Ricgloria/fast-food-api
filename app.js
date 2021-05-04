@@ -6,6 +6,7 @@ const product = require('./routes/product');
 const user = require('./routes/user');
 const paymentMethod = require('./routes/payment-method');
 const sales = require('./routes/sales');
+const deliveryman = require('./routes/deliveryman');
 
 app.use(morgan('dev'))
 app.use(express.urlencoded({extended: false}));
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/product', product);
+app.use('/deliveryman', deliveryman);
 app.use('/user', user);
 app.use('/payment-method', paymentMethod);
 app.use('/sales', sales);

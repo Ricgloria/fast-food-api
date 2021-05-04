@@ -18,13 +18,26 @@ exports.postSale = async (req, res) => {
         id_payment_method: req.body.id_payment_method,
         sale_value: req.body.sale_value,
         sale_date: new Date().toLocaleString(),
-        id_user: req.body.id_user
+        id_user: req.body.id_user,
+        is_delivery: req.body.is_delivery,
+        delivery_address: req.body.delivery_address,
+        id_deliveryman: req.body.id_deliveryman
     }
 
     try {
-        let query = `INSERT INTO sales (sale_date, sale_value, id_user, id_payment_method)
-                     VALUES (?, ?, ?, ?)`;
-        const result = await mysql.executeQuery(query, [obj.sale_date, obj.sale_value, obj.id_user, obj.id_payment_method]);
+        let query = `INSERT INTO sales (sale_date, sale_value, id_user, id_payment_method, is_delivery,
+                                        delivery_address, id_deliveryman)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        const result = await mysql.executeQuery(query,
+            [
+                obj.sale_date,
+                obj.sale_value,
+                obj.id_user,
+                obj.id_payment_method,
+                obj.is_delivery,
+                obj.delivery_address,
+                obj.id_deliveryman
+            ]);
 
         const products = req.body.send_products.map(prod => {
             return [
