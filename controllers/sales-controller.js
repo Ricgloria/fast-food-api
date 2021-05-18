@@ -17,7 +17,7 @@ exports.postSale = async (req, res) => {
     const obj = {
         id_payment_method: req.body.id_payment_method,
         sale_value: req.body.sale_value,
-        sale_date: new Date().toLocaleString(),
+        sale_date: new Date(),
         id_user: req.body.id_user,
         is_delivery: req.body.is_delivery,
         delivery_address: req.body.delivery_address,
