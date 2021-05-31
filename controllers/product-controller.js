@@ -65,12 +65,21 @@ exports.getProductById = async (req, res) => {
     }
 }
 
+function getDiscountRate(discountTable) {
+    return discountTable[0].discount_rate
+}
+
 exports.postProduct = async (req, res) => {
 
     try {
-        let query = 'INSERT INTO products (product_name, product_value, product_discount_value, status) VALUES (?, ?, ?, ?)';
+
+        let query = 'SELECT discount_rate FROM discount WHERE id_discount = 1';
+        const productDiscountValue = req.body.product_value - (req.body.product_value * getDiscountRate(await mysql.executeQuery(query)) / 100);
+
+        query = 'INSERT INTO products (product_name, product_value, product_discount_value, status) VALUES (?, ?, ?, ?)';
         const result = await mysql.executeQuery(query,
-            [req.body.product_name, req.body.product_value, req.body.product_discount_value, req.body.status]);
+            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.status]);
+
         query = 'SELECT * FROM products WHERE id_product = ?';
         const res2 = await mysql.executeQuery(query, [result.insertId]);
         const product = getProduct(res2);
