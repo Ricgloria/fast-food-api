@@ -7,6 +7,7 @@ function transformProducts(products) {
             product_name: pro.product_name,
             product_value: Number(pro.product_value),
             product_discount_value: Number(pro.product_discount_value),
+            id_discount: pro.id_discount,
             status: pro.status
         }
     });
@@ -18,6 +19,7 @@ function getProduct(result) {
         product_name: result[0].product_name,
         product_value: Number(result[0].product_value),
         product_discount_value: Number(result[0].product_discount_value),
+        id_discount: result[0].id_discount,
         status: result[0].status
     };
 }
@@ -92,19 +94,26 @@ exports.postProduct = async (req, res) => {
 exports.putProduct = async (req, res) => {
 
     try {
-        let query = `UPDATE products
-                     SET product_name           = ?,
-                         product_value          = ?,
-                         product_discount_value = ?,
-                         status                 = ?
-                     WHERE id_product = ?`;
+
+        let query = 'SELECT discount_rate FROM discount WHERE id_discount = 1';
+        const productDiscountValue = req.body.product_value - (req.body.product_value * getDiscountRate(await mysql.executeQuery(query)) / 100);
+
+        query = `UPDATE products
+                 SET product_name           = ?,
+                     product_value          = ?,
+                     product_discount_value = ?,
+                     status                 = ?,
+                     id_discount            = ?
+                 WHERE id_product = ?`;
         await mysql.executeQuery(query,
-            [req.body.product_name, req.body.product_value, req.body.product_discount_value, req.body.status, req.params.id]);
+            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.status, req.body.id_discount, req.params.id]);
+
         query = 'SELECT * FROM products WHERE id_product = ?';
         const result = await mysql.executeQuery(query, [req.params.id]);
         const product = getProduct(result);
         res.status(201).json(product);
     } catch (e) {
+        console.log(e)
         return res.status(500).send(e);
     }
 }
