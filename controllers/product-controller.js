@@ -7,6 +7,7 @@ function transformProducts(products) {
             product_name: pro.product_name,
             product_value: Number(pro.product_value),
             product_discount_value: Number(pro.product_discount_value),
+            details: pro.details,
             id_discount: pro.id_discount,
             status: pro.status
         }
@@ -20,6 +21,7 @@ function getProduct(result) {
         product_value: Number(result[0].product_value),
         product_discount_value: Number(result[0].product_discount_value),
         id_discount: result[0].id_discount,
+        details: result[0].details,
         status: result[0].status
     };
 }
@@ -78,9 +80,9 @@ exports.postProduct = async (req, res) => {
         let query = 'SELECT discount_rate FROM discount WHERE id_discount = 1';
         const productDiscountValue = req.body.product_value - (req.body.product_value * getDiscountRate(await mysql.executeQuery(query)) / 100);
 
-        query = 'INSERT INTO products (product_name, product_value, product_discount_value, status) VALUES (?, ?, ?, ?)';
+        query = 'INSERT INTO products (product_name, product_value, product_discount_value, details, status) VALUES (?, ?, ?, ?, ?)';
         const result = await mysql.executeQuery(query,
-            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.status]);
+            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.details, req.body.status]);
 
         query = 'SELECT * FROM products WHERE id_product = ?';
         const res2 = await mysql.executeQuery(query, [result.insertId]);
@@ -102,11 +104,12 @@ exports.putProduct = async (req, res) => {
                  SET product_name           = ?,
                      product_value          = ?,
                      product_discount_value = ?,
+                     details                = ?,
                      status                 = ?,
                      id_discount            = ?
                  WHERE id_product = ?`;
         await mysql.executeQuery(query,
-            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.status, req.body.id_discount, req.params.id]);
+            [req.body.product_name, req.body.product_value, productDiscountValue, req.body.details, req.body.status, req.body.id_discount, req.params.id]);
 
         query = 'SELECT * FROM products WHERE id_product = ?';
         const result = await mysql.executeQuery(query, [req.params.id]);
