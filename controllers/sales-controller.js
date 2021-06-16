@@ -19,14 +19,14 @@ exports.postSale = async (req, res) => {
         sale_value: req.body.sale_value,
         sale_date: new Date(),
         id_user: req.body.id_user,
-        is_delivery: req.body.is_delivery,
+        sales_type_id: req.body.sales_type_id,
         delivery_address: req.body.delivery_address,
         note: req.body.note,
         id_deliveryman: req.body.id_deliveryman
     }
 
     try {
-        let query = `INSERT INTO sales (sale_date, sale_value, id_user, id_payment_method, is_delivery,
+        let query = `INSERT INTO sales (sale_date, sale_value, id_user, id_payment_method, sales_type_id,
                                         delivery_address, note, id_deliveryman)
                      VALUES (?, ?, ?, ?, ?, ?,?, ?)`;
         const result = await mysql.executeQuery(query,
@@ -35,7 +35,7 @@ exports.postSale = async (req, res) => {
                 obj.sale_value,
                 obj.id_user,
                 obj.id_payment_method,
-                obj.is_delivery,
+                obj.sales_type_id,
                 obj.delivery_address,
                 obj.note,
                 obj.id_deliveryman

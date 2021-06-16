@@ -8,6 +8,7 @@ const paymentMethod = require('./routes/payment-method');
 const sales = require('./routes/sales');
 const deliveryman = require('./routes/deliveryman');
 const discount = require('./routes/discount');
+const salesType = require('./routes/sales-type');
 
 app.use(morgan('dev'))
 app.use(express.urlencoded({extended: false}));
@@ -29,6 +30,7 @@ app.use('/user', user);
 app.use('/payment-method', paymentMethod);
 app.use('/sales', sales);
 app.use('/discount', discount);
+app.use('/sales-type', salesType);
 
 app.use((req, res, next) => {
     const error = new Error('Route not found');
