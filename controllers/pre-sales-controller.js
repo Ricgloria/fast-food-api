@@ -10,7 +10,8 @@ function transformPreSales(sales) {
             phone: sale.phone,
             delivery_address: sale.delivery_address,
             note: sale.note,
-            products: sale.products,
+            products: JSON.parse(sale.products),
+            is_finished: sale.is_finished
         }
     })
 }
@@ -24,7 +25,8 @@ function getPreSale(sales) {
         phone: sales[0].phone,
         delivery_address: sales[0].delivery_address,
         note: sales[0].note,
-        products: sales[0].products,
+        products: JSON.parse(sales[0].products),
+        is_finished: sales.is_finished
     }
 }
 
@@ -44,8 +46,30 @@ exports.getPreSaleById = async (req, res) => {
         const id = req.params.id;
         const query = 'SELECT * FROM pre_sales WHERE id_sale = ?';
         const result = await mysql.executeQuery(query, [id]);
-        const preSale = getPreSale(result);
-        res.status(200).send(preSale);
+
+        if (!result.length) {
+            return res.status(404).send({message: 'Não encontrado'})
+        } else {
+            const preSale = getPreSale(result);
+            res.status(200).send(preSale);
+        }
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
+exports.getActivePreSaleById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = 'SELECT * FROM pre_sales WHERE id_sale = ? AND is_finished = 0';
+        const result = await mysql.executeQuery(query, [id]);
+
+        if (!result.length) {
+            return res.status(404).send({message: 'Não encontrado'})
+        } else {
+            const preSale = getPreSale(result);
+            res.status(200).send(preSale);
+        }
     } catch (e) {
         return res.status(500).send(e);
     }
@@ -59,11 +83,11 @@ exports.postPreSale = async (req, res) => {
         phone: req.body.phone,
         delivery_address: req.body.delivery_address,
         note: req.body.note,
-        products: req.body.products,
+        products: JSON.stringify(req.body.products),
     }
 
     try {
-        let query = `INSERT INTO pre_sales (sale_date, id_payment_method, sales_type_id, phone, delivery_address, note, products)
+        const query = `INSERT INTO pre_sales (sale_date, id_payment_method, sales_type_id, phone, delivery_address, note, products)
                      VALUES (?, ?, ?, ?, ?, ?, ?)`;
         await mysql.executeQuery(query,
             [
@@ -76,6 +100,18 @@ exports.postPreSale = async (req, res) => {
                 obj.products
             ]);
         return res.status(201).send({message: 'Pedido realizado com sucesso'});
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
+exports.patchPreSales = async (req, res) => {
+    try {
+        const id = req.params.id
+        const query = `UPDATE pre_sales SET is_finished = ? WHERE id_sale = ?`;
+        await mysql.executeQuery(query, [1, id]);
+
+        res.status(201).send({message: 'Pre venda finalizada com sucesso'});
     } catch (e) {
         return res.status(500).send(e);
     }

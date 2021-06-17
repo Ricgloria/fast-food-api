@@ -52,23 +52,23 @@ exports.getSaleTypesById = async (req, res) => {
             return res.status(404).send({message: 'Não encontrado'})
         } else {
             const user = getSaleType(result);
-            res.status(200).json(user);
+            res.status(200).send(user);
         }
     } catch (e) {
         return res.status(500).send(e);
     }
 }
 
-exports.putSaleType = async (req, res) => {
+exports.patchSaleType = async (req, res) => {
     try {
         const query = `UPDATE sales_type
-                       SET status     = ?
+                       SET status = ?
                        WHERE sales_type_id = ?`;
         await mysql.executeQuery(query, [
             req.body.status,
             req.params.sales_type_id
         ]);
-        res.status(201).json({message: 'Tipo de venda editado com sucesso'});
+        res.status(201).send({message: 'Tipo de venda editado com sucesso'});
     } catch (e) {
         return res.status(500).send(e);
     }
