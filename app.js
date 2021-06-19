@@ -10,6 +10,7 @@ const deliveryman = require('./routes/deliveryman');
 const discount = require('./routes/discount');
 const salesType = require('./routes/sales-type');
 const preSales = require('./routes/pre-sales');
+const chatPhone = require('./routes/chat-phone');
 
 app.use(morgan('dev'))
 app.use(express.urlencoded({extended: false}));
@@ -33,6 +34,7 @@ app.use('/sales', sales);
 app.use('/discount', discount);
 app.use('/sales-type', salesType);
 app.use('/pre-sales', preSales);
+app.use('/chat-phone', chatPhone);
 
 app.use((req, res, next) => {
     const error = new Error('Route not found');

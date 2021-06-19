@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const masterAuth = require('../middleware/master-auth');
 
-const deliverymanController = require('../controllers/deliveryman-controller')
+const deliverymanController = require('../controllers/deliveryman-controller');
 
 router.get('/', masterAuth, deliverymanController.getDeliveryman);
 

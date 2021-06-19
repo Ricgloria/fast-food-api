@@ -11,7 +11,8 @@ function transformPreSales(sales) {
             delivery_address: sale.delivery_address,
             note: sale.note,
             products: JSON.parse(sale.products),
-            is_finished: sale.is_finished
+            is_finished: sale.is_finished,
+            id_chat_phone: sale.id_chat_phone
         }
     })
 }
@@ -26,7 +27,8 @@ function getPreSale(sales) {
         delivery_address: sales[0].delivery_address,
         note: sales[0].note,
         products: JSON.parse(sales[0].products),
-        is_finished: sales.is_finished
+        is_finished: sales[0].is_finished,
+        id_chat_phone: sales[0].id_chat_phone
     }
 }
 
@@ -84,12 +86,13 @@ exports.postPreSale = async (req, res) => {
         delivery_address: req.body.delivery_address,
         note: req.body.note,
         products: JSON.stringify(req.body.products),
+        id_chat_phone: req.body.id_chat_phone
     }
 
     try {
-        const query = `INSERT INTO pre_sales (sale_date, id_payment_method, sales_type_id, phone, delivery_address, note, products)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        await mysql.executeQuery(query,
+        const query = `INSERT INTO pre_sales (sale_date, id_payment_method, sales_type_id, phone, delivery_address, note, products, id_chat_phone)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const result = await mysql.executeQuery(query,
             [
                 obj.sale_date,
                 obj.id_payment_method,
@@ -97,9 +100,10 @@ exports.postPreSale = async (req, res) => {
                 obj.phone,
                 obj.delivery_address,
                 obj.note,
-                obj.products
+                obj.products,
+                obj.id_chat_phone
             ]);
-        return res.status(201).send({message: 'Pedido realizado com sucesso'});
+        return res.status(201).send({preSaleID: result.insertId});
     } catch (e) {
         return res.status(500).send(e);
     }
@@ -111,7 +115,7 @@ exports.patchPreSales = async (req, res) => {
         const query = `UPDATE pre_sales SET is_finished = ? WHERE id_sale = ?`;
         await mysql.executeQuery(query, [1, id]);
 
-        res.status(201).send({message: 'Pre venda finalizada com sucesso'});
+        res.status(201).send({message: 'Pré venda finalizada com sucesso'});
     } catch (e) {
         return res.status(500).send(e);
     }
