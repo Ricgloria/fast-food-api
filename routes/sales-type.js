@@ -10,6 +10,6 @@ router.get('/sales', salesTypeController.getSaleTypesForSales);
 
 router.get('/:id', masterAuth, salesTypeController.getSaleTypesById);
 
-router.patch('/', masterAuth, salesTypeController.patchSaleType);
+router.patch('/:id', masterAuth, salesTypeController.patchSaleType);
 
 module.exports = router;

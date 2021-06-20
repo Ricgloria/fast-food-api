@@ -66,7 +66,7 @@ exports.patchSaleType = async (req, res) => {
                        WHERE sales_type_id = ?`;
         await mysql.executeQuery(query, [
             req.body.status,
-            req.params.sales_type_id
+            req.params.id
         ]);
         res.status(201).send({message: 'Tipo de venda editado com sucesso'});
     } catch (e) {

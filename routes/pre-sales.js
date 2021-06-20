@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const masterAuth = require('../middleware/master-auth');
+const userToken = require('../middleware/user-token.js');
 
 const preSalesController = require('../controllers/pre-sales-controller');
 
@@ -12,6 +13,6 @@ router.get('/active/:id', preSalesController.getActivePreSaleById);
 
 router.post('/', preSalesController.postPreSale);
 
-router.patch('/', preSalesController.patchPreSales);
+router.patch('/', userToken, preSalesController.patchPreSales);
 
 module.exports = router;
