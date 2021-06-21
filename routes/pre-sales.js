@@ -13,6 +13,6 @@ router.get('/active/:id', preSalesController.getActivePreSaleById);
 
 router.post('/', preSalesController.postPreSale);
 
-router.patch('/', userToken, preSalesController.patchPreSales);
+router.patch('/:id', userToken, preSalesController.patchPreSales);
 
 module.exports = router;
