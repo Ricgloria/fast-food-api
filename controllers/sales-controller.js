@@ -12,6 +12,17 @@ function transformSale(result) {
     })
 }
 
+function reportMap(salesType, paymentMethods, users, deliverymen, itemsSale, total) {
+    return {
+        total,
+        salesType,
+        paymentMethods,
+        users,
+        deliverymen,
+        itemsSale
+    }
+}
+
 exports.postSale = async (req, res) => {
 
     const obj = {
@@ -28,7 +39,7 @@ exports.postSale = async (req, res) => {
     try {
         let query = `INSERT INTO sales (sale_date, sale_value, id_user, id_payment_method, sales_type_id,
                                         delivery_address, note, id_deliveryman)
-                     VALUES (?, ?, ?, ?, ?, ?,?, ?)`;
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
         const result = await mysql.executeQuery(query,
             [
                 obj.sale_date,
@@ -68,6 +79,56 @@ exports.getAllSales = async (req, res) => {
         const result = await mysql.executeQuery(query);
         const sales = transformSale(result);
         res.status(200).send(sales);
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
+exports.getSalesReports = async (req, res) => {
+    try {
+
+        let query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = sales.sales_type_id THEN 1 END) as total
+                     FROM sales
+                              JOIN sales_type sl on sl.sales_type_id = sales.sales_type_id
+                     GROUP BY sl.name, sales.sales_type_id`;
+
+        const salesType = await mysql.executeQuery(query, []);
+
+        query = `SELECT pm.description,
+                        COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
+                 FROM sales
+                          JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
+                 GROUP BY pm.description, sales.id_payment_method`;
+
+        const paymentMethods = await mysql.executeQuery(query, []);
+
+        query = `SELECT u.name, COUNT(sales.id_user) total
+                 FROM sales
+                          JOIN users u on sales.id_user = u.id_user
+                 GROUP BY u.name`;
+
+        const users = await mysql.executeQuery(query, []);
+
+        query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
+                 FROM sales
+                          JOIN deliveryman delivery on sales.id_deliveryman = delivery.id_deliveryman
+                 GROUP BY delivery.name`;
+
+        const deliverymen = await mysql.executeQuery(query, []);
+
+        query = `SELECT p.product_name as name, SUM(sali.amount) as total
+                 FROM sales_items sali
+                          join products p on p.id_product = sali.id_product
+                 GROUP BY p.product_name
+                 ORDER BY total DESC;`
+
+        const itemsSale = await mysql.executeQuery(query, []);
+
+        query = `SELECT SUM(amount) total FROM sales_items;`
+
+        const totalItemsSale = await mysql.executeQuery(query, []);
+
+        res.status(200).send(reportMap(salesType, paymentMethods, users, deliverymen, itemsSale, totalItemsSale));
     } catch (e) {
         return res.status(500).send(e);
     }

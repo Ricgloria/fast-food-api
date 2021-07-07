@@ -7,6 +7,8 @@ const salesController = require('../controllers/sales-controller');
 
 router.get('/', masterAuth, salesController.getAllSales);
 
+router.get('/reports', masterAuth, salesController.getSalesReports);
+
 router.post('/', userToken, salesController.postSale);
 
 module.exports = router;

@@ -7,6 +7,8 @@ const preSalesController = require('../controllers/pre-sales-controller');
 
 router.get('/', masterAuth, preSalesController.getAllPreSales);
 
+router.get('/reports', masterAuth, preSalesController.getPreSalesReports);
+
 router.get('/:id', masterAuth, preSalesController.getPreSaleById);
 
 router.get('/active/:id', preSalesController.getActivePreSaleById);
