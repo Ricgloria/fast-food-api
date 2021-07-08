@@ -14,7 +14,7 @@ function transformSale(result) {
 
 function reportMap(salesType, paymentMethods, users, deliverymen, itemsSale, total) {
     return {
-        total,
+        total: total[0].total,
         salesType,
         paymentMethods,
         users,
@@ -94,7 +94,7 @@ exports.getSalesReports = async (req, res) => {
 
         const salesType = await mysql.executeQuery(query, []);
 
-        query = `SELECT pm.description,
+        query = `SELECT pm.description as name,
                         COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
                  FROM sales
                           JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method

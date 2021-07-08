@@ -32,16 +32,11 @@ function getPreSale(sales) {
     }
 }
 
-function reportMap(status = [], salesType = [], paymentMethods = [], deliverymen) {
+function reportMap(status = [], salesType = [], paymentMethods = []) {
     return {
-        total: status[0].total,
-        status: {
-            finished: status[0].finished,
-            not_finished: status[0].not_finished
-        },
+        status,
         salesType,
         paymentMethods,
-        deliverymen
     }
 }
 
@@ -142,10 +137,10 @@ exports.patchPreSales = async (req, res) => {
 
 exports.getPreSalesReports = async (req, res) => {
     try {
-        let query = `SELECT COUNT(*)                                    AS total,
-                            COUNT(CASE WHEN is_finished THEN 1 END)     AS finished,
-                            COUNT(CASE WHEN NOT is_finished THEN 1 END) AS not_finished
-                     FROM pre_sales`;
+        let query = `SELECT IF(is_finished, 'Finalizado', 'Não Finalizado') as name,
+                            COUNT(is_finished)                              as total
+                     FROM pre_sales
+                     GROUP BY name`;
         const status = await mysql.executeQuery(query, []);
 
         query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = pre_sales.sales_type_id THEN 1 END) as total
@@ -155,7 +150,7 @@ exports.getPreSalesReports = async (req, res) => {
 
         const salesType = await mysql.executeQuery(query, []);
 
-        query = `SELECT pm.description,
+        query = `SELECT pm.description                                                             as name,
                         COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
                  FROM pre_sales as sales
                           JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
