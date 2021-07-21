@@ -10,53 +10,13 @@ const dayNameEnum = {
     Sunday: 'Domingo'
 }
 
-const daysNameArray = [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday'
-]
-
-function lastSevenDaysMap() {
-    let result = [];
-    for (let i = 0; i < 7; i++) {
-        let newDate = new Date(new Date().setDate(new Date().getDate() - i));
-        result.push({
-            name: daysNameArray[newDate.getDay()],
-            day: newDate.getDate(),
-            total: 0
-        });
-    }
-    return result;
-}
-
-function joinDaysOfWeek(lastSevenDays = [], days = []) {
-
-    days = days.map(day => {
-        return {
-            name: day.name,
-            day: day.day,
-            total: day.total
-        }
-    });
-
-    lastSevenDays.forEach(last => {
-        days.forEach(day => {
-            if (day.day === last.day && day.name === last.name) {
-                last.total = day.total;
-            }
-        });
-    })
-
-    return lastSevenDays.map(day => {
+function joinDaysOfWeek(days = []) {
+    return days.map(day => {
         return {
             name: dayNameEnum[day.name],
             total: Number(day.total)
         }
-    }).reverse();
+    });
 }
 
 function transformSale(result) {
@@ -64,7 +24,7 @@ function transformSale(result) {
         return {
             id_sale: res.id_sale,
             sale_date: res.sale_date,
-            sale_value: res.sale_value,
+            sale_value: Number(res.sale_value),
             name: res.name,
             description: res.description
         }
@@ -156,13 +116,12 @@ exports.getSalesReports = async (req, res) => {
         const itemsSale = await getItemSaleReports();
         const totalItemsSale = await getTotalItemSaleReports();
         const lastMonth = await getLastMonthReports();
-        const lastSevenDays = lastSevenDaysMap();
         const days = await getLastSevenDaysReports();
         const sixMonth = await getLastSixMonthReports();
         const allSales = await getAllSalesReports();
         res.status(200).send(reportMap(salesType,
             paymentMethods,
-            users, deliverymen, itemsSale, totalItemsSale, lastMonth, joinDaysOfWeek(lastSevenDays, days), sixMonth.reverse(), allSales));
+            users, deliverymen, itemsSale, totalItemsSale, lastMonth, joinDaysOfWeek(days), sixMonth.reverse(), allSales));
     } catch (e) {
         return res.status(500).send(e);
     }
@@ -227,10 +186,40 @@ async function getLastMonthReports() {
 }
 
 async function getLastSevenDaysReports() {
-    const query = `SELECT DAYNAME(sa.sale_date) as name, DAY(sa.sale_date) as day, SUM(sa.sale_value) total
+    const query = `SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 6 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
                    FROM sales sa
-                   WHERE sa.sale_date >= DATE_SUB(now(), INTERVAL 7 DAY)
-                   GROUP BY name;`
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 6 DAY)
+                   UNION
+                   SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 5 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 5 DAY)
+                   UNION
+                   SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 4 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 4 DAY)
+                   UNION
+                   SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 3 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 3 DAY)
+                   UNION
+                   SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 2 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 2 DAY)
+                   UNION
+                   SELECT DAYNAME(DATE_ADD(NOW(), INTERVAL - 1 DAY))    as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW() + INTERVAL - 1 DAY)
+                   UNION
+                   SELECT DAYNAME(NOW())                                as name,
+                          IF(SUM(sa.sale_value), SUM(sa.sale_value), 0) as total
+                   FROM sales sa
+                   WHERE DATE(sa.sale_date) = DATE(NOW());`
     return await mysql.executeQuery(query, []);
 }
 
