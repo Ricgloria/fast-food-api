@@ -94,11 +94,26 @@ exports.postSale = async (req, res) => {
 
 exports.getAllSales = async (req, res) => {
     try {
-        const query = `SELECT sa.id_sale, sa.sale_date, sa.sale_value, u.name, pm.description
-                       FROM sales sa
-                                INNER JOIN users u on u.id_user = sa.id_user
-                                INNER JOIN payment_methods pm on sa.id_payment_method = pm.id_payment_method
-                       ORDER BY sa.sale_date DESC`;
+        let query;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+
+        if (startDate && endDate) {
+            query = `SELECT sa.id_sale, sa.sale_date, sa.sale_value, u.name, pm.description
+                     FROM sales sa
+                              INNER JOIN users u on u.id_user = sa.id_user
+                              INNER JOIN payment_methods pm on sa.id_payment_method = pm.id_payment_method
+                     WHERE sa.sale_date BETWEEN '${startDate}'
+                               AND '${endDate}'
+                     ORDER BY sa.sale_date DESC`;
+        } else {
+            query = `SELECT sa.id_sale, sa.sale_date, sa.sale_value, u.name, pm.description
+                     FROM sales sa
+                              INNER JOIN users u on u.id_user = sa.id_user
+                              INNER JOIN payment_methods pm on sa.id_payment_method = pm.id_payment_method
+                     ORDER BY sa.sale_date DESC`;
+        }
+
         const result = await mysql.executeQuery(query);
         const sales = transformSale(result);
         res.status(200).send(sales);
@@ -109,16 +124,19 @@ exports.getAllSales = async (req, res) => {
 
 exports.getSalesReports = async (req, res) => {
     try {
-        const salesType = await getSalesTypeReports();
-        const paymentMethods = await getPaymentTypesReports();
-        const users = await getUsersReports();
-        const deliverymen = await getDeliveryManReports();
-        const itemsSale = await getItemSaleReports();
-        const totalItemsSale = await getTotalItemSaleReports();
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+
+        const salesType = await getSalesTypeReports(startDate, endDate);
+        const paymentMethods = await getPaymentTypesReports(startDate, endDate);
+        const users = await getUsersReports(startDate, endDate);
+        const deliverymen = await getDeliveryManReports(startDate, endDate);
+        const itemsSale = await getItemSaleReports(startDate, endDate);
+        const totalItemsSale = await getTotalItemSaleReports(startDate, endDate);
         const lastMonth = await getLastMonthReports();
         const days = await getLastSevenDaysReports();
         const sixMonth = await getLastSixMonthReports();
-        const allSales = await getAllSalesReports();
+        const allSales = await getAllSalesReports(startDate, endDate);
         res.status(200).send(reportMap(salesType,
             paymentMethods,
             users, deliverymen, itemsSale, totalItemsSale, lastMonth, joinDaysOfWeek(days), sixMonth.reverse(), allSales));
@@ -127,53 +145,123 @@ exports.getSalesReports = async (req, res) => {
     }
 }
 
-async function getSalesTypeReports() {
-    let query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = sales.sales_type_id THEN 1 END) as total
+async function getSalesTypeReports(startDate, endDate) {
+
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = sales.sales_type_id THEN 1 END) as total
+                 FROM sales
+                          JOIN sales_type sl on sl.sales_type_id = sales.sales_type_id
+                 WHERE sales.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY sl.name, sales.sales_type_id`;
+
+    } else {
+        query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = sales.sales_type_id THEN 1 END) as total
                  FROM sales
                           JOIN sales_type sl on sl.sales_type_id = sales.sales_type_id
                  GROUP BY sl.name, sales.sales_type_id`;
+    }
+    return await mysql.executeQuery(query, []);
+}
+
+async function getPaymentTypesReports(startDate, endDate) {
+
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT pm.description                                                             as name,
+                        COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
+                 FROM sales
+                          JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
+                 WHERE sales.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY pm.description, sales.id_payment_method`;
+    } else {
+        query = `SELECT pm.description                                                             as name,
+                        COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
+                 FROM sales
+                          JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
+                 GROUP BY pm.description, sales.id_payment_method`;
+    }
 
     return await mysql.executeQuery(query, []);
 }
 
-async function getPaymentTypesReports() {
-    const query = `SELECT pm.description                                                             as name,
-                          COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
-                   FROM sales
-                            JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
-                   GROUP BY pm.description, sales.id_payment_method`;
+async function getUsersReports(startDate, endDate) {
+
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT u.name, COUNT(sales.id_user) total
+                 FROM sales
+                          JOIN users u on sales.id_user = u.id_user
+                 WHERE sales.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY u.name`;
+    } else {
+        query = `SELECT u.name, COUNT(sales.id_user) total
+                 FROM sales
+                          JOIN users u on sales.id_user = u.id_user
+                 GROUP BY u.name`;
+    }
     return await mysql.executeQuery(query, []);
 }
 
-async function getUsersReports() {
-    const query = `SELECT u.name, COUNT(sales.id_user) total
-                   FROM sales
-                            JOIN users u on sales.id_user = u.id_user
-                   GROUP BY u.name`;
+async function getDeliveryManReports(startDate, endDate) {
+
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
+                 FROM sales
+                          JOIN deliveryman delivery on sales.id_deliveryman = delivery.id_deliveryman
+                 WHERE sales.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY delivery.name`;
+    } else {
+        query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
+                 FROM sales
+                          JOIN deliveryman delivery on sales.id_deliveryman = delivery.id_deliveryman
+                 GROUP BY delivery.name`;
+    }
     return await mysql.executeQuery(query, []);
 }
 
-async function getDeliveryManReports() {
+async function getItemSaleReports(startDate, endDate) {
 
-    const query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
-                   FROM sales
-                            JOIN deliveryman delivery on sales.id_deliveryman = delivery.id_deliveryman
-                   GROUP BY delivery.name`;
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT p.product_name as name, SUM(sali.amount) as total
+                 FROM sales_items sali
+                          JOIN products p ON p.id_product = sali.id_product
+                        JOIN sales s ON s.id_sale = sali.id_sale
+                 WHERE s.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY p.product_name
+                 ORDER BY total DESC;`
+    } else {
+        query = `SELECT p.product_name as name, SUM(sali.amount) as total
+                 FROM sales_items sali
+                          join products p on p.id_product = sali.id_product
+                 GROUP BY p.product_name
+                 ORDER BY total DESC;`
+    }
+
     return await mysql.executeQuery(query, []);
 }
 
-async function getItemSaleReports() {
-    const query = `SELECT p.product_name as name, SUM(sali.amount) as total
-                   FROM sales_items sali
-                            join products p on p.id_product = sali.id_product
-                   GROUP BY p.product_name
-                   ORDER BY total DESC;`
-    return await mysql.executeQuery(query, []);
-}
+async function getTotalItemSaleReports(startDate, endDate) {
 
-async function getTotalItemSaleReports() {
-    const query = `SELECT SUM(amount) total
-                   FROM sales_items;`
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT SUM(amount) total
+                 FROM sales_items
+                          JOIN sales s ON s.id_sale = sales_items.id_sale
+                 WHERE s.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'`
+    } else {
+        query = `SELECT SUM(amount) total
+                 FROM sales_items;`
+    }
+
     return await mysql.executeQuery(query, []);
 }
 
@@ -256,10 +344,19 @@ async function getLastSixMonthReports() {
     return await mysql.executeQuery(query, []);
 }
 
-async function getAllSalesReports() {
-    const query = `SELECT DATE_FORMAT(sa.sale_date, '%m/%y') as name, SUM(sa.sale_value) total
-                   FROM sales sa
-                   GROUP BY name;`
+async function getAllSalesReports(startDate, endDate) {
+    let query;
+    if (startDate && endDate) {
+        query = `SELECT DATE_FORMAT(sa.sale_date, '%m/%y') as name, SUM(sa.sale_value) total
+                 FROM sales sa
+                 WHERE sa.sale_date BETWEEN '${startDate}'
+                           AND '${endDate}'
+                 GROUP BY name;`
+    } else {
+        query = `SELECT DATE_FORMAT(sa.sale_date, '%m/%y') as name, SUM(sa.sale_value) total
+                 FROM sales sa
+                 GROUP BY name;`
+    }
     return await mysql.executeQuery(query, []);
 }
 
