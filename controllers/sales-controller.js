@@ -103,8 +103,8 @@ exports.getAllSales = async (req, res) => {
                      FROM sales sa
                               INNER JOIN users u on u.id_user = sa.id_user
                               INNER JOIN payment_methods pm on sa.id_payment_method = pm.id_payment_method
-                     WHERE sa.sale_date BETWEEN '${startDate}'
-                               AND '${endDate}'
+                     WHERE DATE(sa.sale_date) >= '${startDate}'
+                       AND DATE(sa.sale_date) <= '${endDate}'
                      ORDER BY sa.sale_date DESC`;
         } else {
             query = `SELECT sa.id_sale, sa.sale_date, sa.sale_value, u.name, pm.description
@@ -152,8 +152,8 @@ async function getSalesTypeReports(startDate, endDate) {
         query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = sales.sales_type_id THEN 1 END) as total
                  FROM sales
                           JOIN sales_type sl on sl.sales_type_id = sales.sales_type_id
-                 WHERE sales.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                 WHERE DATE(sales.sale_date) >= '${startDate}'
+                   AND DATE(sales.sale_date) <= '${endDate}'
                  GROUP BY sl.name, sales.sales_type_id`;
 
     } else {
@@ -173,8 +173,8 @@ async function getPaymentTypesReports(startDate, endDate) {
                         COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
                  FROM sales
                           JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
-                 WHERE sales.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                 WHERE DATE(sales.sale_date) >= '${startDate}'
+                   AND DATE(sales.sale_date) <= '${endDate}'
                  GROUP BY pm.description, sales.id_payment_method`;
     } else {
         query = `SELECT pm.description                                                             as name,
@@ -194,8 +194,8 @@ async function getUsersReports(startDate, endDate) {
         query = `SELECT u.name, COUNT(sales.id_user) total
                  FROM sales
                           JOIN users u on sales.id_user = u.id_user
-                 WHERE sales.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                 WHERE DATE(sales.sale_date) >= '${startDate}'
+                   AND DATE(sales.sale_date) <= '${endDate}'
                  GROUP BY u.name`;
     } else {
         query = `SELECT u.name, COUNT(sales.id_user) total
@@ -213,8 +213,8 @@ async function getDeliveryManReports(startDate, endDate) {
         query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
                  FROM sales
                           JOIN deliveryman delivery on sales.id_deliveryman = delivery.id_deliveryman
-                 WHERE sales.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                 WHERE DATE(sales.sale_date) >= '${startDate}'
+                   AND DATE(sales.sale_date) <= '${endDate}'
                  GROUP BY delivery.name`;
     } else {
         query = `SELECT delivery.name, COUNT(sales.id_deliveryman) total
@@ -232,9 +232,9 @@ async function getItemSaleReports(startDate, endDate) {
         query = `SELECT p.product_name as name, SUM(sali.amount) as total
                  FROM sales_items sali
                           JOIN products p ON p.id_product = sali.id_product
-                        JOIN sales s ON s.id_sale = sali.id_sale
-                 WHERE s.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                          JOIN sales s ON s.id_sale = sali.id_sale
+                 WHERE DATE(s.sale_date) >= '${startDate}'
+                   AND DATE(s.sale_date) <= '${endDate}'
                  GROUP BY p.product_name
                  ORDER BY total DESC;`
     } else {
@@ -255,8 +255,8 @@ async function getTotalItemSaleReports(startDate, endDate) {
         query = `SELECT SUM(amount) total
                  FROM sales_items
                           JOIN sales s ON s.id_sale = sales_items.id_sale
-                 WHERE s.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'`
+                 WHERE DATE(s.sale_date) >= '${startDate}'
+                   AND DATE(s.sale_date) <= '${endDate}'`
     } else {
         query = `SELECT SUM(amount) total
                  FROM sales_items;`
@@ -349,8 +349,8 @@ async function getAllSalesReports(startDate, endDate) {
     if (startDate && endDate) {
         query = `SELECT DATE_FORMAT(sa.sale_date, '%m/%y') as name, SUM(sa.sale_value) total
                  FROM sales sa
-                 WHERE sa.sale_date BETWEEN '${startDate}'
-                           AND '${endDate}'
+                 WHERE DATE(sa.sale_date) >= '${startDate}'
+                   AND DATE(sa.sale_date) <= '${endDate}'
                  GROUP BY name;`
     } else {
         query = `SELECT DATE_FORMAT(sa.sale_date, '%m/%y') as name, SUM(sa.sale_value) total

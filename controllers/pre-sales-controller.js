@@ -156,8 +156,9 @@ async function getPreSaleStatus(startDate, endDate) {
     if (startDate && endDate) {
         query = `SELECT IF(is_finished, 'Finalizado', 'Não Finalizado') as name,
                         COUNT(is_finished)                              as total
-                 FROM pre_sales
-                 WHERE pre_sales.sale_date BETWEEN '${startDate}' AND '${endDate}'
+                 FROM pre_sales sa
+                 WHERE DATE(sa.sale_date) >= '${startDate}'
+                   AND DATE(sa.sale_date) <= '${endDate}'
                  GROUP BY name`;
 
     } else {
@@ -176,7 +177,8 @@ async function getPreSalesType(startDate, endDate) {
         query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = pre_sales.sales_type_id THEN 1 END) as total
                  FROM pre_sales
                           JOIN sales_type sl on sl.sales_type_id = pre_sales.sales_type_id
-                 WHERE pre_sales.sale_date BETWEEN '${startDate}' AND '${endDate}'
+                 WHERE DATE(pre_sales.sale_date) >= '${startDate}'
+                   AND DATE(pre_sales.sale_date) <= '${endDate}'
                  GROUP BY sl.name, pre_sales.sales_type_id`;
     } else {
         query = `SELECT sl.name, COUNT(CASE WHEN sl.sales_type_id = pre_sales.sales_type_id THEN 1 END) as total
@@ -196,7 +198,8 @@ async function getPreSalesPaymentMethods(startDate, endDate) {
                         COUNT(CASE WHEN pm.id_payment_method = sales.id_payment_method THEN 1 END) as total
                  FROM pre_sales as sales
                           JOIN payment_methods as pm on pm.id_payment_method = sales.id_payment_method
-                 WHERE sales.sale_date BETWEEN '${startDate}' AND '${endDate}'
+                 WHERE DATE(sales.sale_date) >= '${startDate}'
+                   AND DATE(sales.sale_date) <= '${endDate}'
                  GROUP BY pm.description, sales.id_payment_method`;
     } else {
         query = `SELECT pm.description                                                             as name,

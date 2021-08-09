@@ -135,6 +135,64 @@ exports.deleteUser = async (req, res) => {
     }
 }
 
+exports.resetPassword = async (req, res) => {
+    try {
+
+        bcrypt.hash('123456', 10, async (errBcrypt, hash) => {
+            if (errBcrypt) {
+                return res.status(500).send(errBcrypt);
+            }
+            try {
+                const query = `UPDATE users set password = ? WHERE id_user = ?`;
+                await mysql.executeQuery(query, [
+                    hash,
+                    req.params.id
+                ]);
+                res.status(201).json({message: 'Senha resetada com sucesso'});
+            } catch (e) {
+                return res.status(500).send(e);
+            }
+        });
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
+exports.renewPassword = async (req, res) => {
+    try {
+        const query = 'SELECT * FROM users WHERE id_user = ?'
+        let result = await mysql.executeQuery(query, [req.body.id_user]);
+
+        if (!result.length || result[0].status === 0) {
+            return res.status(401).send({message: 'Falha na troca de senha'});
+        }
+
+        bcrypt.compare(req.body.oldPassword, result[0].password, (err2, result1) => {
+            if (result1) {
+                bcrypt.hash(req.body.newPassword, 10, async (errBcrypt, hash) => {
+                    if (errBcrypt) {
+                        return res.status(500).send(errBcrypt);
+                    }
+                    try {
+                        const query = `UPDATE users set password = ? WHERE id_user = ?`;
+                        await mysql.executeQuery(query, [
+                            hash,
+                            req.body.id_user
+                        ]);
+                        res.status(201).json({message: 'Senha atualizada com sucesso'});
+                    } catch (e) {
+                        return res.status(500).send(e);
+                    }
+                });
+            } else {
+                return res.status(401).send({message: 'Falha na autenticação'});
+            }
+        });
+    } catch (e) {
+        return res.status(500).send(e);
+    }
+}
+
 exports.userLogin = async (req, res) => {
 
     try {
