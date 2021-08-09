@@ -13,12 +13,13 @@ router.post('/', masterAuth, userController.postUser);
 
 router.post('/login', userController.userLogin);
 
+router.patch('/renew', userToken, userController.renew);
+
 router.put('/:id', masterAuth, userController.putUser);
 
 router.delete('/:id', masterAuth, userController.deleteUser);
 
 router.patch('/:id', masterAuth, userController.resetPassword);
 
-router.patch('/renew', userToken, userController.renewPassword);
 
 module.exports = router;

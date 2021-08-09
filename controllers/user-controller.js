@@ -158,7 +158,7 @@ exports.resetPassword = async (req, res) => {
     }
 }
 
-exports.renewPassword = async (req, res) => {
+exports.renew = async (req, res) => {
     try {
         const query = 'SELECT * FROM users WHERE id_user = ?'
         let result = await mysql.executeQuery(query, [req.body.id_user]);
