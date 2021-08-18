@@ -86,7 +86,8 @@ exports.postSale = async (req, res) => {
         query = `INSERT INTO sales_items (amount, id_sale, id_product)
                  VALUES ?`;
         await mysql.executeQuery(query, [products]);
-        return res.status(201).send({message: 'Venda realizada com sucesso'});
+
+        return res.status(201).send({insertId: result.insertId});
     } catch (e) {
         return res.status(500).send(e);
     }

@@ -123,13 +123,47 @@ exports.postPreSale = async (req, res) => {
 
 exports.patchPreSales = async (req, res) => {
     try {
-        const id = req.params.id
-        const query = `UPDATE pre_sales
-                       SET is_finished = ?
-                       WHERE id_sale = ?`;
-        await mysql.executeQuery(query, [1, id]);
+        const id = req.params.id;
+        const insertId = req.params.insertId;
+        const finishedDate = new Date();
+        let query = `UPDATE pre_sales
+                     SET is_finished      = ?,
+                         id_finished_sale = ?,
+                         finished_date    = ?
+                     WHERE id_sale = ?`;
+        await mysql.executeQuery(query, [1, insertId, finishedDate, id]);
 
-        res.status(201).send({message: 'Pré venda finalizada com sucesso'});
+        query = `SELECT CEILING(IF(SUM(TIMESTAMPDIFF(MINUTE, pre.sale_date, pre.finished_date) + 20),
+                                 SUM(TIMESTAMPDIFF(MINUTE, pre.sale_date, pre.finished_date) + 20), 30) /
+                              IF(SUM(IF(pre.sales_type_id = 1, 1, 0)), SUM(IF(pre.sales_type_id = 1, 1, 0)),
+                                 1)) as delivery_time
+                 FROM pre_sales pre
+                 WHERE sales_type_id = 1`;
+        const deliveryTime = await mysql.executeQuery(query, []);
+
+        query = `SELECT CEILING(IF(SUM(TIMESTAMPDIFF(MINUTE, pre.sale_date, pre.finished_date)),
+                                 SUM(TIMESTAMPDIFF(MINUTE, pre.sale_date, pre.finished_date)) /
+                                 IF(SUM(IF(pre.sales_type_id = 2 OR pre.sales_type_id = 3, 1, 0)),
+                                    SUM(IF(pre.sales_type_id = 2 OR pre.sales_type_id = 3, 1, 0)), 1), 30)) as time
+                 FROM pre_sales pre
+                 WHERE sales_type_id = 2
+                    OR sales_type_id = 3`;
+        const time = await mysql.executeQuery(query, []);
+
+        query = `UPDATE expected_time
+                 SET time = ?
+                 WHERE id_expected_time = 1`;
+        await mysql.executeQuery(query, [deliveryTime[0].delivery_time]);
+        query = `UPDATE expected_time
+                 SET time = ?
+                 WHERE id_expected_time = 2`;
+        await mysql.executeQuery(query, [time[0].time]);
+
+        res.status(201).send({
+            message: 'Pré venda finalizada com sucesso',
+            deliveryTime: deliveryTime[0].delivery_time,
+            time: time[0].time
+        });
     } catch (e) {
         return res.status(500).send(e);
     }

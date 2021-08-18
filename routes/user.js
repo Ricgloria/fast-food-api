@@ -21,5 +21,4 @@ router.delete('/:id', masterAuth, userController.deleteUser);
 
 router.patch('/:id', masterAuth, userController.resetPassword);
 
-
 module.exports = router;
